@@ -1,4 +1,8 @@
-package org.example.domain.customer.exporter;
+package org.example.domain.customer.services;
+
+import org.example.domain.customer.exporter.CsvExporter;
+import org.example.domain.customer.exporter.FileExporter;
+import org.example.domain.customer.exporter.JsonExporter;
 
 public class ExporterFactory {
 
