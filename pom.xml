@@ -20,5 +20,21 @@
             <artifactId>jackson-databind</artifactId>
             <version>2.17.0</version>
         </dependency>
+            <dependency>
+                <groupId>org.dflib</groupId>
+                <artifactId>dflib</artifactId>
+                <!-- no version needed — BOM handles it -->
+            </dependency>
     </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.dflib</groupId>
+                <artifactId>dflib-bom</artifactId>
+                <version>1.3.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>
