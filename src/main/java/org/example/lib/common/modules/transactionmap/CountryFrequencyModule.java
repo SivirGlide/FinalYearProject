@@ -2,7 +2,6 @@ package org.example.lib.common.modules.transactionmap;
 
 import org.dflib.DataFrame;
 import org.dflib.Series;
-import org.example.lib.transactionmapper.TransactionMapModule;
 
 import java.util.HashMap;
 import java.util.Map;

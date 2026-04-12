@@ -1,6 +1,7 @@
 package org.example.lib.transactionmapper;
 
 import org.dflib.DataFrame;
+import org.example.lib.common.modules.transactionmap.TransactionMapModule;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,9 +10,6 @@ public class TransactionMap {
 
     private final DataFrame df;
 
-    // Wildcard <?> here because each module can have a different type parameter.
-    // We don't care what T is at this level — we just call run() on each module
-    // and store whatever it returns. The type safety is handled inside ModuleResult.
     private final List<TransactionMapModule<?>> modules = new ArrayList<>();
 
     /**

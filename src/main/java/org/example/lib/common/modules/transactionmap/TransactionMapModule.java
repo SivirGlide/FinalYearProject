@@ -1,4 +1,4 @@
-package org.example.lib.transactionmapper;
+package org.example.lib.common.modules.transactionmap;
 
 import org.dflib.DataFrame;
 
