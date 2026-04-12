@@ -9,7 +9,7 @@ import java.util.Set;
 
 import static org.example.lib.common.definitions.ColumnDefinition.ColumnType.*;
 
-public class PersonalCustomerSchema extends CustomerSchema {
+public class PersonalCustomerSchema extends DataFrameSchema {
 
     private static final Set<String> CASH_TURNOVER_VALUES = Set.of(
             "0-10000",
@@ -26,8 +26,6 @@ public class PersonalCustomerSchema extends CustomerSchema {
     @Override
     public List<ColumnDefinition> getColumnDefinitions() {
         return List.of(
-
-                // ── Name fields ─────────────────────────────────────────────────
 
                 new ColumnDefinition.Builder("firstname", STRING)
                         .required(true)

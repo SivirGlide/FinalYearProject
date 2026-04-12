@@ -5,9 +5,11 @@ import java.util.Set;
 public class ColumnDefinition {
 
     public enum ColumnType {
-        STRING,         // Plain text
-        DATE,           // java.time.LocalDate
-        STRING_ARRAY    // String[] — used for lists of ISO codes, etc.
+        STRING,       // java.lang.String
+        DATE,         // java.time.LocalDate
+        TIME,         // java.time.LocalTime
+        INT,          // java.lang.Integer
+        STRING_ARRAY  // String[] — used for lists of ISO codes etc.
     }
 
     private final String columnName;
@@ -18,6 +20,9 @@ public class ColumnDefinition {
     private final Set<String> allowedValues;  // Empty set means "no constraint"
     private final String comment;             // Human-readable note (mirrors the schema comment)
 
+    /**
+     * Full constructor — used internally by the builder below.
+     */
     private ColumnDefinition(Builder builder) {
         this.columnName    = builder.columnName;
         this.expectedType  = builder.expectedType;

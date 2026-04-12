@@ -5,7 +5,7 @@ import org.example.lib.validator.ValidationReport;
 
 import java.util.List;
 
-public abstract class CustomerSchema {
+public abstract class DataFrameSchema {
 
     public abstract List<ColumnDefinition> getColumnDefinitions();
 

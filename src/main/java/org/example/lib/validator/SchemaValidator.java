@@ -3,7 +3,7 @@ package org.example.lib.validator;
 import org.dflib.DataFrame;
 import org.dflib.Series;
 import org.example.lib.common.definitions.ColumnDefinition;
-import org.example.lib.common.schemas.CustomerSchema;
+import org.example.lib.common.schemas.DataFrameSchema;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -11,9 +11,9 @@ import java.util.List;
 
 public class SchemaValidator {
 
-    private final CustomerSchema schema;
+    private final DataFrameSchema schema;
 
-    public SchemaValidator(CustomerSchema schema) {
+    public SchemaValidator(DataFrameSchema schema) {
         this.schema = schema;
     }
 
@@ -83,6 +83,8 @@ public class SchemaValidator {
         boolean typeOk = switch (expectedType) {
             case STRING       -> sample instanceof String;
             case DATE         -> sample instanceof LocalDate;
+            case TIME -> false;
+            case INT -> false;
             case STRING_ARRAY -> sample instanceof String[];
         };
 
