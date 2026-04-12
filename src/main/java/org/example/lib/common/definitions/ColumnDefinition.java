@@ -2,19 +2,8 @@ package org.example.lib.common.definitions;
 
 import java.util.Set;
 
-/**
- * Describes a single column in a customer schema.
- *
- * Think of this as a "blueprint card" for one column. When the validator
- * runs, it looks at the actual DataFrame column and compares it against
- * whatever this object says it should look like.
- */
 public class ColumnDefinition {
 
-    /**
-     * The expected Java/DFLib type for values in this column.
-     * e.g. String.class, LocalDate.class, String[].class
-     */
     public enum ColumnType {
         STRING,         // Plain text
         DATE,           // java.time.LocalDate
@@ -29,9 +18,6 @@ public class ColumnDefinition {
     private final Set<String> allowedValues;  // Empty set means "no constraint"
     private final String comment;             // Human-readable note (mirrors the schema comment)
 
-    /**
-     * Full constructor — used internally by the builder below.
-     */
     private ColumnDefinition(Builder builder) {
         this.columnName    = builder.columnName;
         this.expectedType  = builder.expectedType;

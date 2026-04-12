@@ -8,28 +8,7 @@ import org.example.lib.common.schemas.CustomerSchema;
 import java.time.LocalDate;
 import java.util.List;
 
-/**
- * The main validation engine.
- *
- * HOW IT WORKS — step by step:
- *
- *  1. Check that every required column defined in the schema is present
- *     in the DataFrame. Missing → ERROR.
- *
- *  2. For each column that IS present, check:
- *       a. Type check       — do the actual values match the expected type?
- *       b. Null check       — any nulls in a column that shouldn't have them?
- *       c. Length check     — for 2-char ISO fields, is every value exactly 2 chars?
- *       d. Allowed values   — for dropdown fields, is every value in the allowed set?
- *       e. Array element    — for String[] columns, are the individual ISO codes valid?
- *
- *  3. Run the schema's cross-column checks (e.g. age outlier logic in PersonalCustomerSchema).
- *
- *  4. Flag unexpected columns — columns in the DataFrame that aren't in the schema at all
- *     (reported as INFO so you're aware without it being a hard failure).
- *
- * IMPORTANT: This class NEVER modifies the DataFrame. It is read-only.
- */
+
 public class SchemaValidator {
 
     private final CustomerSchema schema;
@@ -38,12 +17,6 @@ public class SchemaValidator {
         this.schema = schema;
     }
 
-    /**
-     * Run the full validation and return a report.
-     *
-     * @param df  The DFLib DataFrame to validate. Not modified.
-     * @return    A ValidationReport containing all issues found.
-     */
     public ValidationReport validate(DataFrame df) {
 
         long rowCount = df.height(); // DFLib: .height() = number of rows
@@ -89,20 +62,6 @@ public class SchemaValidator {
         return report;
     }
 
-    // =========================================================================
-    // Private check methods — each handles one category of validation
-    // =========================================================================
-
-    /**
-     * TYPE CHECK
-     *
-     * DFLib Series are typed. We inspect the series' element type and
-     * compare it against what the ColumnDefinition says it should be.
-     *
-     * DFLib uses generics — Series<String>, Series<LocalDate>, etc.
-     * We look at a sample of non-null values to infer the actual type,
-     * because DFLib may report Object for mixed/untyped columns.
-     */
     private void checkTypes(ValidationReport report, ColumnDefinition colDef, Series<?> series) {
         String colName = colDef.getColumnName();
         ColumnDefinition.ColumnType expectedType = colDef.getExpectedType();
@@ -141,16 +100,6 @@ public class SchemaValidator {
         }
     }
 
-    /**
-     * NULL CHECK
-     *
-     * Scans every row in the series. If nulls are NOT allowed and a null
-     * is found, we emit a WARNING with the row index so you can find it.
-     *
-     * We emit one WARNING per null found so the report shows every affected row.
-     * If a column has many nulls this can be verbose — you may want to add a
-     * "max issues per column" cap for large DataFrames.
-     */
     private void checkNulls(ValidationReport report, ColumnDefinition colDef, Series<?> series) {
         if (colDef.isNullsAllowed()) return; // Nothing to check
 
@@ -177,15 +126,6 @@ public class SchemaValidator {
         }
     }
 
-    /**
-     * EXACT LENGTH CHECK
-     *
-     * Used for 2-char ISO code fields (Nationality, Country Of Birth, Residence,
-     * and elements of the payment country arrays).
-     *
-     * Flags values that aren't exactly the required length — e.g. "USA" (3 chars)
-     * or "G" (1 char) would both be flagged for a field requiring length 2.
-     */
     private void checkExactLength(ValidationReport report, ColumnDefinition colDef, Series<?> series) {
         int requiredLength = colDef.getExactLength();
         if (requiredLength < 0) return; // No length constraint on this column
@@ -210,12 +150,6 @@ public class SchemaValidator {
         }
     }
 
-    /**
-     * ALLOWED VALUES CHECK
-     *
-     * For fields that must contain one of a fixed set of values (e.g. Cash Turnover
-     * dropdown). Any value outside the set is flagged as a WARNING.
-     */
     private void checkAllowedValues(ValidationReport report, ColumnDefinition colDef, Series<?> series) {
         if (colDef.getAllowedValues().isEmpty()) return; // No constraint
 
@@ -240,14 +174,6 @@ public class SchemaValidator {
         }
     }
 
-    /**
-     * STRING ARRAY ELEMENT CHECK
-     *
-     * For columns typed as STRING_ARRAY (Countries of Outward/Inward Payments),
-     * each cell holds a String[]. This check inspects every element within
-     * each array and flags elements that aren't exactly 2 characters long
-     * (since they should be ISO country codes).
-     */
     private void checkStringArrayElements(ValidationReport report, ColumnDefinition colDef, Series<?> series) {
         if (colDef.getExpectedType() != ColumnDefinition.ColumnType.STRING_ARRAY) return;
 
@@ -284,13 +210,6 @@ public class SchemaValidator {
         }
     }
 
-    /**
-     * UNEXPECTED COLUMN CHECK
-     *
-     * Finds columns in the DataFrame that aren't defined in the schema at all.
-     * This is logged as INFO — it might be intentional (extra enrichment columns)
-     * or it might mean a column was renamed and the schema needs updating.
-     */
     private void checkUnexpectedColumns(ValidationReport report, DataFrame df, List<ColumnDefinition> definitions) {
         List<String> definedNames = definitions.stream()
                 .map(ColumnDefinition::getColumnName)

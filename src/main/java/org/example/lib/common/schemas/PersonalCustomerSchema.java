@@ -9,38 +9,8 @@ import java.util.Set;
 
 import static org.example.lib.common.definitions.ColumnDefinition.ColumnType.*;
 
-/**
- * Schema definition for Personal Customers.
- *
- * Mirrors exactly what is in your screenshot:
- *
- *  Column                        | Type     | Rules
- * ──────────────────────────────|──────────|──────────────────────────────────
- *  firstname                    | String   |
- *  middlename                   | String   |
- *  lastname                     | String   |
- *  Date Of Birth                | Date     |
- *  Address                      | String   |
- *  Nationality                  | String   | 2-char ISO code
- *  Country Of Birth             | String   | 2-char ISO code
- *  Residence                    | String   | 2-char ISO code
- *  Cash Turnover                | String   | Fixed amount dropdown (allowed values defined below)
- *  Countries of Outward Payments| String[] | List of 2-char ISO codes
- *  Countries of Inward Payments | String[] | List of 2-char ISO codes
- *
- * The CASH_TURNOVER_VALUES set below should be kept in sync with whatever
- * values your dropdown actually offers. Add/remove entries as your product changes.
- */
 public class PersonalCustomerSchema extends CustomerSchema {
 
-    /**
-     * The fixed set of valid Cash Turnover values.
-     * These mirror a dropdown in your UI — if the data contains anything
-     * outside this set it means either bad data was inserted or the dropdown
-     * has changed since this schema was last updated.
-     *
-     * Adjust these bands to match your actual dropdown options.
-     */
     private static final Set<String> CASH_TURNOVER_VALUES = Set.of(
             "0-10000",
             "10001-50000",
@@ -53,16 +23,6 @@ public class PersonalCustomerSchema extends CustomerSchema {
     public String getSchemaName() {
         return "PersonalCustomerSchema";
     }
-
-    /**
-     * Returns the full list of column definitions for a Personal Customer DataFrame.
-     *
-     * Reading guide:
-     *   .required(true)          → validation will ERROR if this column is absent
-     *   .nullsAllowed(false)     → validation will WARN on any null value in this column
-     *   .exactLength(2)          → validation will WARN if a String value isn't exactly 2 chars
-     *   .allowedValues(SET)      → validation will WARN if a value isn't in the set
-     */
     @Override
     public List<ColumnDefinition> getColumnDefinitions() {
         return List.of(
@@ -155,15 +115,6 @@ public class PersonalCustomerSchema extends CustomerSchema {
         );
     }
 
-    /**
-     * Cross-column check specific to personal customers.
-     *
-     * Currently checks:
-     *   • Date Of Birth outliers — flags anyone apparently under 18 or over 120 years old.
-     *
-     * Add more cross-column rules here as your business logic grows.
-     * This override is called automatically by SchemaValidator after per-column checks.
-     */
     @Override
     public void performCrossColumnChecks(ValidationReport report, org.dflib.DataFrame df) {
 
