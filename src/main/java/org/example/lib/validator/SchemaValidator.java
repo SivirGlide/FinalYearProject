@@ -24,6 +24,7 @@ public class SchemaValidator {
 
         List<ColumnDefinition> definitions = schema.getColumnDefinitions();
 
+        //check if all required columns are present
         for (ColumnDefinition colDef : definitions) {
             if (colDef.isRequired() && !df.getColumnsIndex().contains(colDef.getColumnName())) {
                 report.addIssue(new ValidationIssue(
