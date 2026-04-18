@@ -4,13 +4,6 @@ import java.util.Set;
 
 public class ColumnDefinition {
 
-    public enum ColumnType {
-        STRING,
-        DATE,
-        TIME,
-        INT,
-        STRING_ARRAY
-    }
 
     private final String columnName;
     private final ColumnType expectedType;

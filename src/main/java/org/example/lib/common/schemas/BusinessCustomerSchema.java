@@ -1,6 +1,7 @@
 package org.example.lib.common.schemas;
 
 import org.example.lib.common.definitions.ColumnDefinition;
+import org.example.lib.common.definitions.StandardColumnType;
 
 import java.util.List;
 import java.util.Set;
@@ -25,7 +26,7 @@ public class BusinessCustomerSchema extends DataFrameSchema {
     public List<ColumnDefinition> getColumnDefinitions() {
         return List.of(
 
-                new ColumnDefinition.Builder("firstname", STRING)
+                new ColumnDefinition.Builder("firstname", StandardColumnType.STRING)
                         .required(true)
                         .nullsAllowed(false)
                         .comment("Customer's first name")
