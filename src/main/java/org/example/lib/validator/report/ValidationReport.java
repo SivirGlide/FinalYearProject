@@ -1,4 +1,4 @@
-package org.example.lib.validator;
+package org.example.lib.validator.report;
 
 import java.util.ArrayList;
 import java.util.List;

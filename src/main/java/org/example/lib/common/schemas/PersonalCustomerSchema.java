@@ -1,8 +1,6 @@
 package org.example.lib.common.schemas;
 
 import org.example.lib.common.definitions.ColumnDefinition;
-import org.example.lib.validator.ValidationReport;
-import org.example.lib.validator.ValidationIssue;
 
 import java.util.List;
 import java.util.Set;
@@ -97,42 +95,5 @@ public class PersonalCustomerSchema extends DataFrameSchema {
                         .comment("List of 2-char ISO codes for countries sending payments to this customer")
                         .build()
         );
-    }
-
-    @Override
-    public void performCrossColumnChecks(ValidationReport report, org.dflib.DataFrame df) {
-
-        if (!df.getColumnsIndex().contains("Date Of Birth")) {
-            return; // Column-level check will already have flagged this as missing
-        }
-
-        java.time.LocalDate today = java.time.LocalDate.now();
-
-        org.dflib.Series<?> dobSeries = df.getColumn("Date Of Birth");
-
-        for (int i = 0; i < dobSeries.size(); i++) {
-            Object raw = dobSeries.get(i);
-            if (raw == null) continue; // Null already flagged in column check
-
-            if (raw instanceof java.time.LocalDate dob) {
-                int age = java.time.Period.between(dob, today).getYears();
-
-                if (age < 18) {
-                    report.addIssue(new ValidationIssue(
-                            ValidationIssue.Severity.WARNING,
-                            "Date Of Birth",
-                            String.format("Customer appears to be under 18 (age ~%d). Verify DOB: %s", age, dob),
-                            i
-                    ));
-                } else if (age > 120) {
-                    report.addIssue(new ValidationIssue(
-                            ValidationIssue.Severity.WARNING,
-                            "Date Of Birth",
-                            String.format("Implausible age ~%d years — possible data entry error. DOB: %s", age, dob),
-                            i
-                    ));
-                }
-            }
-        }
     }
 }

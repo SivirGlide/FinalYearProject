@@ -1,4 +1,4 @@
-package org.example.lib.validator;
+package org.example.lib.validator.report;
 /**
  * Represents a single problem found during validation.
  *

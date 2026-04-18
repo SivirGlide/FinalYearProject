@@ -1,8 +1,6 @@
 package org.example.lib.common.schemas;
 
 import org.example.lib.common.definitions.ColumnDefinition;
-import org.example.lib.validator.ValidationIssue;
-import org.example.lib.validator.ValidationReport;
 
 import java.util.List;
 
@@ -87,35 +85,5 @@ public class TransactionSchema extends DataFrameSchema {
                         .comment("2-character ISO 3166-1 alpha-2 code for the beneficiary's country")
                         .build()
         );
-    }
-
-    @Override
-    public void performCrossColumnChecks(ValidationReport report, org.dflib.DataFrame df) {
-
-        boolean hasOrigin      = df.getColumnsIndex().contains("countryoforigin");
-        boolean hasBeneficiary = df.getColumnsIndex().contains("countryofbeneficiary");
-
-        if (!hasOrigin || !hasBeneficiary) return; // Missing columns already flagged as errors
-
-        org.dflib.Series<?> originSeries      = df.getColumn("countryoforigin");
-        org.dflib.Series<?> beneficiarySeries = df.getColumn("countryofbeneficiary");
-
-        for (int i = 0; i < originSeries.size(); i++) {
-            Object origin      = originSeries.get(i);
-            Object beneficiary = beneficiarySeries.get(i);
-
-            if (origin == null || beneficiary == null) continue;
-
-            if (origin.equals(beneficiary)) {
-                report.addIssue(new ValidationIssue(
-                        ValidationIssue.Severity.INFO,
-                        "countryoforigin / countryofbeneficiary",
-                        String.format(
-                                "Domestic transaction — origin and beneficiary country are both \"%s\".", origin
-                        ),
-                        i
-                ));
-            }
-        }
     }
 }

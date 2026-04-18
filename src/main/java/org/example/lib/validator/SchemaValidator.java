@@ -4,6 +4,8 @@ import org.dflib.DataFrame;
 import org.dflib.Series;
 import org.example.lib.common.definitions.ColumnDefinition;
 import org.example.lib.common.schemas.DataFrameSchema;
+import org.example.lib.validator.report.ValidationIssue;
+import org.example.lib.validator.report.ValidationReport;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -50,8 +52,6 @@ public class SchemaValidator {
             checkAllowedValues(report, colDef, series);
             checkStringArrayElements(report, colDef, series);
         }
-
-        schema.performCrossColumnChecks(report, df);
 
         checkUnexpectedColumns(report, df, definitions);
 

@@ -2,10 +2,11 @@ package org.example.lib.validator;
 
 import org.dflib.DataFrame;
 import org.example.lib.common.schemas.PersonalCustomerSchema;
+import org.example.lib.validator.report.ValidationReport;
 
-public class PersonalCustomerValidator {
+public class PersonalCustomerValidator implements DataValidator{
 
-    private PersonalCustomerValidator() {}
+    public PersonalCustomerValidator() {}
 
     // The schema instance is created once when the class is first loaded and reused for every validate() call.
     private static final PersonalCustomerSchema SCHEMA = new PersonalCustomerSchema();
@@ -13,7 +14,14 @@ public class PersonalCustomerValidator {
     /**
      * Validates a DFLib DataFrame against the Personal Customer schema.
      */
-    public static ValidationReport validate(DataFrame df) {
-        return new SchemaValidator(SCHEMA).validate(df);
+    @Override
+    public ValidationReport validate(DataFrame df) {
+        ValidationReport report = new SchemaValidator(SCHEMA).validate(df);
+        return this.CustomValidation(report, df);
     }
+
+    protected ValidationReport CustomValidation(ValidationReport report, DataFrame df) {
+        return report;
+    }
+
 }
