@@ -1,4 +1,4 @@
-package org.example.lib.common.definitions;
+package org.example.lib.common.columns;
 
 public enum StandardColumnType implements ColumnType {
     STRING,

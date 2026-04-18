@@ -1,4 +1,4 @@
-package org.example.lib.common.definitions;
+package org.example.lib.common.columns;
 
 public interface ColumnType {
     String name();

@@ -1,7 +1,7 @@
 package org.example.lib.common.schemas;
 
-import org.example.lib.common.definitions.ColumnDefinition;
-import org.example.lib.common.definitions.StandardColumnType;
+import org.example.lib.common.columns.ColumnDefinition;
+import org.example.lib.common.columns.StandardColumnType;
 
 import java.util.List;
 import java.util.Set;

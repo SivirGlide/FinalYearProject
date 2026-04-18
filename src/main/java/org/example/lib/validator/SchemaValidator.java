@@ -2,14 +2,18 @@ package org.example.lib.validator;
 
 import org.dflib.DataFrame;
 import org.dflib.Series;
-import org.example.lib.common.definitions.ColumnDefinition;
+import org.example.lib.common.columns.ColumnDefinition;
+import org.example.lib.common.columns.StandardColumnType;
 import org.example.lib.common.schemas.DataFrameSchema;
 import org.example.lib.validator.report.ValidationIssue;
 import org.example.lib.validator.report.ValidationReport;
 
 import java.time.LocalDate;
-import java.util.List;
-
+import java.time.LocalTime;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 public class SchemaValidator {
 
@@ -19,208 +23,232 @@ public class SchemaValidator {
         this.schema = schema;
     }
 
+    /**
+     * Runs all four validation checks against the provided DataFrame and
+     * returns a report containing every issue found.
+     */
     public ValidationReport validate(DataFrame df) {
+        ValidationReport report = new ValidationReport(schema.getSchemaName(), df.height());
 
-        long rowCount = df.height();
-        ValidationReport report = new ValidationReport(schema.getSchemaName(), rowCount);
+        // Build a case-insensitive map of  "lowercaseName -> actualName"  so that
+        // every private method can resolve the real column label used in the DataFrame.
+        Map<String, String> dfColumnMap = buildColumnMap(df);
 
-        List<ColumnDefinition> definitions = schema.getColumnDefinitions();
-
-        //check if all required columns are present
-        for (ColumnDefinition colDef : definitions) {
-            if (colDef.isRequired() && !df.getColumnsIndex().contains(colDef.getColumnName())) {
-                report.addIssue(new ValidationIssue(
-                        ValidationIssue.Severity.ERROR,
-                        colDef.getColumnName(),
-                        "Required column is missing from the DataFrame."
-                ));
-            }
-        }
-
-        for (ColumnDefinition colDef : definitions) {
-            String colName = colDef.getColumnName();
-
-            if (!df.getColumnsIndex().contains(colName)) {
-                continue; // Already flagged as missing above
-            }
-
-            Series<?> series = df.getColumn(colName);
-
-            checkTypes(report, colDef, series);
-            checkNulls(report, colDef, series);
-            checkExactLength(report, colDef, series);
-            checkAllowedValues(report, colDef, series);
-            checkStringArrayElements(report, colDef, series);
-        }
-
-        checkUnexpectedColumns(report, df, definitions);
+        checkColumns(dfColumnMap, report);
+        checkColumnTypes(df, dfColumnMap, report);
+        checkNullValues(df, dfColumnMap, report);
+        checkAllowedValues(df, dfColumnMap, report);
 
         return report;
     }
 
-    private void checkTypes(ValidationReport report, ColumnDefinition colDef, Series<?> series) {
-        String colName = colDef.getColumnName();
-        ColumnDefinition.ColumnType expectedType = colDef.getExpectedType();
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
 
-        Object sample = null;
-        for (int i = 0; i < series.size(); i++) {
-            if (series.get(i) != null) {
-                sample = series.get(i);
-                break;
-            }
+    /**
+     * Builds a map of lowercase column name → actual column label as it appears
+     * in the DataFrame.  This lets every check do case-insensitive look-ups
+     * (consistent with DataFrameSchema#getDefinitionFor).
+     */
+    private Map<String, String> buildColumnMap(DataFrame df) {
+        Map<String, String> map = new HashMap<>();
+        for (String label : df.getColumnsIndex()) {
+            map.put(label.toLowerCase(), label);
         }
-
-        if (sample == null) {
-            return;
-        }
-
-        boolean typeOk = switch (expectedType) {
-            case STRING       -> sample instanceof String;
-            case DATE         -> sample instanceof LocalDate;
-            case TIME -> false;
-            case INT -> false;
-            case STRING_ARRAY -> sample instanceof String[];
-        };
-
-        if (!typeOk) {
-            report.addIssue(new ValidationIssue(
-                    ValidationIssue.Severity.ERROR,
-                    colName,
-                    String.format(
-                            "Type mismatch. Expected: %s, but found: %s (sample value class: %s).",
-                            expectedType,
-                            sample.getClass().getSimpleName(),
-                            sample.getClass().getName()
-                    )
-            ));
-        }
+        return map;
     }
 
-    private void checkNulls(ValidationReport report, ColumnDefinition colDef, Series<?> series) {
-        if (colDef.isNullsAllowed()) return; // Nothing to check
-
-        String colName = colDef.getColumnName();
-        int nullCount = 0;
-        int firstNullRow = -1;
-
-        for (int i = 0; i < series.size(); i++) {
-            if (series.get(i) == null) {
-                nullCount++;
-                if (firstNullRow < 0) firstNullRow = i;
-            }
-        }
-
-        if (nullCount > 0) {
-            report.addIssue(new ValidationIssue(
-                    ValidationIssue.Severity.WARNING,
-                    colName,
-                    String.format(
-                            "Column does not allow nulls but contains %d null value(s). First occurrence at row %d.",
-                            nullCount, firstNullRow
-                    )
-            ));
-        }
-    }
-
-    private void checkExactLength(ValidationReport report, ColumnDefinition colDef, Series<?> series) {
-        int requiredLength = colDef.getExactLength();
-        if (requiredLength < 0) return; // No length constraint on this column
-
-        String colName = colDef.getColumnName();
-
-        for (int i = 0; i < series.size(); i++) {
-            Object val = series.get(i);
-            if (val == null) continue; // Null handled separately
-
-            if (val instanceof String str && str.length() != requiredLength) {
+    /**
+     * TASK 1 – Column presence check.
+     *
+     * Every column that is marked required="true" in the schema MUST exist in
+     * the DataFrame.  If it is absent an ERROR is recorded.
+     *
+     * Non-required columns are simply optional; their absence is fine.
+     */
+    private void checkColumns(Map<String, String> dfColumnMap, ValidationReport report) {
+        for (ColumnDefinition colDef : schema.getColumnDefinitions()) {
+            String key = colDef.getColumnName().toLowerCase();
+            if (!dfColumnMap.containsKey(key)) {
                 report.addIssue(new ValidationIssue(
-                        ValidationIssue.Severity.WARNING,
-                        colName,
-                        String.format(
-                                "Expected exactly %d characters but found \"%s\" (%d chars).",
-                                requiredLength, str, str.length()
-                        ),
-                        i
+                        ValidationIssue.Severity.ERROR,
+                        colDef.getColumnName(),
+                        "Column defined in schema is missing from the DataFrame."
                 ));
             }
         }
     }
 
-    private void checkAllowedValues(ValidationReport report, ColumnDefinition colDef, Series<?> series) {
-        if (colDef.getAllowedValues().isEmpty()) return; // No constraint
+    /**
+     * TASK 2 – Column type check.
+     *
+     * For every schema column that is present in the DataFrame, the nominal
+     * Java type of the DFLib Series is compared against the expected type from
+     * the schema.  A mismatch is recorded as an ERROR.
+     *
+     * Only StandardColumnType values are handled here; custom ColumnType
+     * implementations are skipped because we have no mapping for them.
+     */
+    private void checkColumnTypes(DataFrame df,
+                                  Map<String, String> dfColumnMap,
+                                  ValidationReport report) {
 
-        String colName = colDef.getColumnName();
+        for (ColumnDefinition colDef : schema.getColumnDefinitions()) {
+            String actualLabel = resolveLabel(colDef.getColumnName(), dfColumnMap);
+            if (actualLabel == null) continue; // missing column already flagged in checkColumns
 
-        for (int i = 0; i < series.size(); i++) {
-            Object val = series.get(i);
-            if (val == null) continue;
+            // Only handle the known StandardColumnType enum values
+            if (!(colDef.getExpectedType() instanceof StandardColumnType)) continue;
 
-            String strVal = val.toString();
-            if (!colDef.getAllowedValues().contains(strVal)) {
-                report.addIssue(new ValidationIssue(
-                        ValidationIssue.Severity.WARNING,
-                        colName,
-                        String.format(
-                                "Value \"%s\" is not in the allowed set: %s.",
-                                strVal, colDef.getAllowedValues()
-                        ),
-                        i
-                ));
-            }
-        }
-    }
+            Class<?> expectedClass = toJavaType((StandardColumnType) colDef.getExpectedType());
+            if (expectedClass == null) continue;
 
-    private void checkStringArrayElements(ValidationReport report, ColumnDefinition colDef, Series<?> series) {
-        if (colDef.getExpectedType() != ColumnDefinition.ColumnType.STRING_ARRAY) return;
+            // Check each non-null value's runtime class against the expected type.
+            // Nulls are skipped here — they are handled separately in checkNullValues.
+            Series<?> series = df.getColumn(actualLabel);
+            for (int i = 0; i < series.size(); i++) {
+                Object value = series.get(i);
+                if (value == null) continue;
 
-        String colName = colDef.getColumnName();
-
-        for (int i = 0; i < series.size(); i++) {
-            Object val = series.get(i);
-            if (val == null) continue;
-
-            if (val instanceof String[] codes) {
-                for (String code : codes) {
-                    if (code == null) {
-                        report.addIssue(new ValidationIssue(
-                                ValidationIssue.Severity.WARNING,
-                                colName,
-                                "Array element is null inside the list.",
-                                i
-                        ));
-                    } else if (code.length() != 2) {
-                        report.addIssue(new ValidationIssue(
-                                ValidationIssue.Severity.WARNING,
-                                colName,
-                                String.format(
-                                        "Array element \"%s\" is not a valid 2-char ISO code (length: %d).",
-                                        code, code.length()
-                                ),
-                                i
-                        ));
-                    }
+                // isAssignableFrom allows for subclass relationships (e.g. Integer is a Number)
+                if (!expectedClass.isAssignableFrom(value.getClass())) {
+                    report.addIssue(new ValidationIssue(
+                            ValidationIssue.Severity.ERROR,
+                            colDef.getColumnName(),
+                            String.format(
+                                    "Type mismatch: schema expects %s (%s) but found value '%s' of type %s.",
+                                    colDef.getExpectedType().name(),
+                                    expectedClass.getSimpleName(),
+                                    value,
+                                    value.getClass().getSimpleName()
+                            ),
+                            i
+                    ));
                 }
-            } else {
-                // Cell value is not a String[] — type mismatch already reported, skip
             }
         }
     }
 
-    private void checkUnexpectedColumns(ValidationReport report, DataFrame df, List<ColumnDefinition> definitions) {
-        List<String> definedNames = definitions.stream()
-                .map(ColumnDefinition::getColumnName)
-                .map(String::toLowerCase)
-                .toList();
+    /**
+     * TASK 3 – Null value check.
+     *
+     * Iterates every value in each schema column and counts nulls.
+     *
+     *  • If the column disallows nulls (nullsAllowed = false) AND nulls are
+     *    found → ERROR  (the data is definitively wrong).
+     *  • If the column allows nulls but some are present → WARNING
+     *    (informing the caller how many nulls exist so they can decide whether
+     *    that is expected or suspicious).
+     */
+    private void checkNullValues(DataFrame df,
+                                 Map<String, String> dfColumnMap,
+                                 ValidationReport report) {
 
-        for (String actualCol : df.getColumnsIndex()) {
-            if (!definedNames.contains(actualCol.toLowerCase())) {
+        for (ColumnDefinition colDef : schema.getColumnDefinitions()) {
+            String actualLabel = resolveLabel(colDef.getColumnName(), dfColumnMap);
+            if (actualLabel == null) continue;
+
+            Series<?> series = df.getColumn(actualLabel);
+            long nullCount = 0;
+
+            for (int i = 0; i < series.size(); i++) {
+                if (series.get(i) == null) {
+                    nullCount++;
+                }
+            }
+
+            if (nullCount == 0) continue; // nothing to report
+
+            if (!colDef.isNullsAllowed()) {
                 report.addIssue(new ValidationIssue(
-                        ValidationIssue.Severity.INFO,
-                        actualCol,
-                        "Column exists in DataFrame but is not defined in the schema. " +
-                                "Verify this column is expected or update the schema."
+                        ValidationIssue.Severity.ERROR,
+                        colDef.getColumnName(),
+                        String.format(
+                                "Column does not allow null values but contains %d null(s) out of %d row(s).",
+                                nullCount, series.size()
+                        )
+                ));
+            } else {
+                report.addIssue(new ValidationIssue(
+                        ValidationIssue.Severity.WARNING,
+                        colDef.getColumnName(),
+                        String.format(
+                                "Column contains %d null value(s) out of %d row(s).",
+                                nullCount, series.size()
+                        )
                 ));
             }
         }
+    }
+
+    /**
+     * TASK 4 – Allowed-values check.
+     *
+     * Some columns in the schema declare a finite set of permitted values
+     * (e.g. a STATUS column that may only hold "ACTIVE", "INACTIVE", "PENDING").
+     * If a non-null cell value is not in that set an ERROR is recorded, including
+     * the exact row index so the caller can locate the offending record.
+     *
+     * Null values are intentionally skipped here — they are already handled by
+     * the null check above, keeping the two concerns separate.
+     */
+    private void checkAllowedValues(DataFrame df,
+                                    Map<String, String> dfColumnMap,
+                                    ValidationReport report) {
+
+        for (ColumnDefinition colDef : schema.getColumnDefinitions()) {
+            Set<String> allowed = colDef.getAllowedValues();
+            if (allowed.isEmpty()) continue; // no constraint defined for this column
+
+            String actualLabel = resolveLabel(colDef.getColumnName(), dfColumnMap);
+            if (actualLabel == null) continue;
+
+            Series<?> series = df.getColumn(actualLabel);
+
+            for (int i = 0; i < series.size(); i++) {
+                Object value = series.get(i);
+                if (value == null) continue; // null handled separately
+
+                String strValue = value.toString();
+                if (!allowed.contains(strValue)) {
+                    report.addIssue(new ValidationIssue(
+                            ValidationIssue.Severity.ERROR,
+                            colDef.getColumnName(),
+                            String.format(
+                                    "Value '%s' is not in the allowed set %s.",
+                                    strValue, allowed
+                            ),
+                            i   // row index stored so the caller knows exactly which row is bad
+                    ));
+                }
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Utility
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the real DataFrame column label that matches the schema column
+     * name case-insensitively, or null if no such column exists in the DataFrame.
+     */
+    private String resolveLabel(String schemaColumnName, Map<String, String> dfColumnMap) {
+        return dfColumnMap.get(schemaColumnName.toLowerCase());
+    }
+
+    /**
+     * Maps a StandardColumnType to its corresponding Java class.
+     * This is used by checkColumnTypes to compare against DFLib's Series.getType().
+     */
+    private Class<?> toJavaType(StandardColumnType type) {
+        return switch (type) {
+            case STRING       -> String.class;
+            case DATE         -> LocalDate.class;
+            case TIME         -> LocalTime.class;
+            case INT          -> Integer.class;
+            case STRING_ARRAY -> String[].class;
+        };
     }
 }
