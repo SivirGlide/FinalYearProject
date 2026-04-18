@@ -12,42 +12,17 @@ public class TransactionMap {
 
     private final List<TransactionMapModule<?>> modules = new ArrayList<>();
 
-    /**
-     * Creates a TransactionMap for a single customer's transaction DataFrame.
-     *
-     * @param df  The transaction DataFrame. Must not be null. Never modified.
-     */
     public TransactionMap(DataFrame df) {
         if (df == null) throw new IllegalArgumentException("DataFrame must not be null.");
         this.df = df;
     }
 
-    /**
-     * Registers a module to be run against this map's DataFrame.
-     *
-     * Returns 'this' so calls can be chained:
-     *   map.addModule(new ModuleA()).addModule(new ModuleB())
-     *
-     * Modules run in the order they are added.
-     *
-     * @param module  The module to add. Must not be null.
-     * @return        This TransactionMap, for chaining.
-     */
     public TransactionMap addModule(TransactionMapModule<?> module) {
         if (module == null) throw new IllegalArgumentException("Module must not be null.");
         modules.add(module);
         return this;
     }
 
-    /**
-     * Runs all registered modules against the DataFrame and returns the results.
-     *
-     * Each module receives the same DataFrame. Modules are run in registration order.
-     * If a module throws any exception, the error is captured as a failed ModuleResult
-     * and execution continues with the next module — a single failure is isolated.
-     *
-     * @return  A TransactionMapResult containing one entry per registered module.
-     */
     public TransactionMapResult run() {
         TransactionMapResult result = new TransactionMapResult();
 
@@ -69,7 +44,6 @@ public class TransactionMap {
         return result;
     }
 
-    /** Returns how many modules are currently registered */
     public int moduleCount() {
         return modules.size();
     }

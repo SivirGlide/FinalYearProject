@@ -45,24 +45,17 @@ public class PersonalCustomerSchema extends DataFrameSchema {
                         .comment("Customer's last name")
                         .build(),
 
-                // ── Date of Birth ────────────────────────────────────────────────
-
                 new ColumnDefinition.Builder("Date Of Birth", DATE)
                         .required(true)
                         .nullsAllowed(false)
                         .comment("Must be a valid date; outlier check flags implausible DOBs")
                         .build(),
 
-                // ── Address ──────────────────────────────────────────────────────
-
                 new ColumnDefinition.Builder("Address", STRING)
                         .required(true)
                         .nullsAllowed(false)
                         .comment("Customer's full address")
                         .build(),
-
-                // ── ISO 2-char country/nationality codes ─────────────────────────
-                // exactLength(2) ensures e.g. "USA" or "GB " get flagged as warnings
 
                 new ColumnDefinition.Builder("Nationality", STRING)
                         .required(true)
@@ -85,9 +78,6 @@ public class PersonalCustomerSchema extends DataFrameSchema {
                         .comment("2-character ISO 3166-1 alpha-2 country code")
                         .build(),
 
-                // ── Cash Turnover (dropdown) ─────────────────────────────────────
-                // String type; constrained to the fixed set of dropdown values
-
                 new ColumnDefinition.Builder("Cash Turnover", STRING)
                         .required(true)
                         .nullsAllowed(false)
@@ -95,19 +85,15 @@ public class PersonalCustomerSchema extends DataFrameSchema {
                         .comment("Fixed dropdown value representing annual cash turnover band")
                         .build(),
 
-                // ── Payment country lists (String arrays) ────────────────────────
-                // Each element in the array should itself be a 2-char ISO code.
-                // The validator checks the array type and then inspects each element.
-
                 new ColumnDefinition.Builder("Countries of Outward Payments", STRING_ARRAY)
                         .required(true)
-                        .nullsAllowed(true)   // An empty/null list may mean "no outward payments"
+                        .nullsAllowed(false)  //minimum of one country
                         .comment("List of 2-char ISO codes for countries receiving payments from this customer")
                         .build(),
 
                 new ColumnDefinition.Builder("Countries of Inward Payments", STRING_ARRAY)
                         .required(true)
-                        .nullsAllowed(true)   // An empty/null list may mean "no inward payments"
+                        .nullsAllowed(false)   //minimum of one country
                         .comment("List of 2-char ISO codes for countries sending payments to this customer")
                         .build()
         );

@@ -19,8 +19,6 @@ public class TransactionSchema extends DataFrameSchema {
     public List<ColumnDefinition> getColumnDefinitions() {
         return List.of(
 
-                // ── Customer and account identifiers ─────────────────────────────
-
                 new ColumnDefinition.Builder("customernumber", INT)
                         .required(true)
                         .nullsAllowed(false)
@@ -33,8 +31,6 @@ public class TransactionSchema extends DataFrameSchema {
                         .comment("Account number the transaction was made from")
                         .build(),
 
-                // ── Date and time ─────────────────────────────────────────────────
-
                 new ColumnDefinition.Builder("date", DATE)
                         .required(true)
                         .nullsAllowed(false)
@@ -46,8 +42,6 @@ public class TransactionSchema extends DataFrameSchema {
                         .nullsAllowed(false)
                         .comment("Time the transaction occurred")
                         .build(),
-
-                // ── Beneficiary details ───────────────────────────────────────────
 
                 new ColumnDefinition.Builder("beneficiaryname", STRING)
                         .required(true)
@@ -72,8 +66,6 @@ public class TransactionSchema extends DataFrameSchema {
                         .nullsAllowed(true)  // Reference may legitimately be blank
                         .comment("Payment reference supplied by the sender")
                         .build(),
-
-                // ── Payment metadata ──────────────────────────────────────────────
 
                 new ColumnDefinition.Builder("purposeofpayment", STRING)
                         .required(true)

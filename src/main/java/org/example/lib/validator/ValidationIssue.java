@@ -27,7 +27,6 @@ public class ValidationIssue {
         this.rowIndex    = rowIndex;
     }
 
-    /** Convenience constructor for issues that aren't tied to a specific row */
     public ValidationIssue(Severity severity, String columnName, String description) {
         this(severity, columnName, description, -1L);
     }

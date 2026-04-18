@@ -19,12 +19,11 @@ public class SchemaValidator {
 
     public ValidationReport validate(DataFrame df) {
 
-        long rowCount = df.height(); // DFLib: .height() = number of rows
+        long rowCount = df.height();
         ValidationReport report = new ValidationReport(schema.getSchemaName(), rowCount);
 
         List<ColumnDefinition> definitions = schema.getColumnDefinitions();
 
-        // ── Step 1: Check for missing required columns ───────────────────────
         for (ColumnDefinition colDef : definitions) {
             if (colDef.isRequired() && !df.getColumnsIndex().contains(colDef.getColumnName())) {
                 report.addIssue(new ValidationIssue(
@@ -35,7 +34,6 @@ public class SchemaValidator {
             }
         }
 
-        // ── Step 2: Per-column checks for columns that are present ───────────
         for (ColumnDefinition colDef : definitions) {
             String colName = colDef.getColumnName();
 
@@ -52,11 +50,8 @@ public class SchemaValidator {
             checkStringArrayElements(report, colDef, series);
         }
 
-        // ── Step 3: Cross-column / business logic checks ─────────────────────
-        // Delegates to the schema subclass (e.g. age outlier check in PersonalCustomerSchema)
         schema.performCrossColumnChecks(report, df);
 
-        // ── Step 4: Flag unexpected columns (columns in DF not in schema) ────
         checkUnexpectedColumns(report, df, definitions);
 
         return report;
@@ -66,7 +61,6 @@ public class SchemaValidator {
         String colName = colDef.getColumnName();
         ColumnDefinition.ColumnType expectedType = colDef.getExpectedType();
 
-        // Find first non-null value to inspect
         Object sample = null;
         for (int i = 0; i < series.size(); i++) {
             if (series.get(i) != null) {
@@ -76,7 +70,6 @@ public class SchemaValidator {
         }
 
         if (sample == null) {
-            // All values are null — can't check type, will be caught by null check
             return;
         }
 

@@ -5,24 +5,21 @@ import java.util.Set;
 public class ColumnDefinition {
 
     public enum ColumnType {
-        STRING,       // java.lang.String
-        DATE,         // java.time.LocalDate
-        TIME,         // java.time.LocalTime
-        INT,          // java.lang.Integer
-        STRING_ARRAY  // String[] — used for lists of ISO codes etc.
+        STRING,
+        DATE,
+        TIME,
+        INT,
+        STRING_ARRAY
     }
 
     private final String columnName;
     private final ColumnType expectedType;
-    private final boolean required;           // If true, column MUST be present
-    private final boolean nullsAllowed;       // If false, any null value is flagged
+    private final boolean required;
+    private final boolean nullsAllowed;
     private final int exactLength;            // -1 means "no length constraint"
     private final Set<String> allowedValues;  // Empty set means "no constraint"
-    private final String comment;             // Human-readable note (mirrors the schema comment)
+    private final String comment;
 
-    /**
-     * Full constructor — used internally by the builder below.
-     */
     private ColumnDefinition(Builder builder) {
         this.columnName    = builder.columnName;
         this.expectedType  = builder.expectedType;
@@ -33,10 +30,6 @@ public class ColumnDefinition {
         this.comment       = builder.comment;
     }
 
-    // -------------------------------------------------------------------------
-    // Getters — validator reads these to know what rules to apply
-    // -------------------------------------------------------------------------
-
     public String      getColumnName()    { return columnName;    }
     public ColumnType  getExpectedType()  { return expectedType;  }
     public boolean     isRequired()       { return required;      }
@@ -45,24 +38,15 @@ public class ColumnDefinition {
     public Set<String> getAllowedValues() { return allowedValues; }
     public String      getComment()       { return comment;       }
 
-    // -------------------------------------------------------------------------
-    // Builder pattern — lets us construct ColumnDefinitions in a readable way:
-    //   new ColumnDefinition.Builder("Nationality", STRING).exactLength(2).build()
-    //
-    // A "Builder" is just a helper object that collects all the optional settings
-    // before creating the final immutable ColumnDefinition.
-    // -------------------------------------------------------------------------
-
     public static class Builder {
-        // Required fields set in constructor
+
         private final String columnName;
         private final ColumnType expectedType;
 
-        // Optional fields with sensible defaults
         private boolean required      = true;
         private boolean nullsAllowed  = false;
         private int exactLength       = -1;
-        private Set<String> allowedValues = Set.of(); // empty = no constraint
+        private Set<String> allowedValues = Set.of();
         private String comment        = "";
 
         public Builder(String columnName, ColumnType expectedType) {
