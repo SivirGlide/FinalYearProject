@@ -25,10 +25,8 @@ public class PersonalCustomerValidator implements DataValidator {
             Pattern.CASE_INSENSITIVE
     );
 
-    // Customers must be adults and the date must be plausible — not so old
-    // that it is almost certainly a data-entry error.
-    private static final int MIN_AGE = 18;
-    private static final int MAX_AGE = 120;
+    private static final int MIN_AGE = 1;
+    private static final int MAX_AGE = 123;
 
     @Override
     public ValidationReport validate(DataFrame df) {
