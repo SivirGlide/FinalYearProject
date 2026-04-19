@@ -1,200 +1,205 @@
 # Fraud Detection Library
 
-A modular, Java-based fraud detection library built on top of a dataframe processing layer (`DFLib`) and a pluggable suspicious activity scoring engine.
+A Java library for analysing customer transaction data and scoring transactions for fraud risk. Built on [DFLib](https://dflib.org/) for DataFrame operations and Jackson for JSON output.
 
 ---
 
-## Overview
+## Architecture Overview
 
-This library evaluates incoming transactions for potential fraud by combining:
+The library is built around two sequential pipelines:
 
-- historical transaction data  
-- customer (personal) information  
-- business data  
-- configurable fraud detection modules  
-- a scoring engine for new transactions  
-
-It is designed to be **extensible**, allowing users to:
-
-- define custom fraud detection modules  
-- introduce custom schemas and data structures  
-- tailor fraud logic to domain-specific patterns  
-
-At its core, the system uses `DFLib` to:
-
-- load and structure datasets  
-- validate and clean data  
-- transform and aggregate features  
-- prepare inputs for fraud scoring  
+```
+Customer Transactions (DataFrame)
+         │
+         ▼
+  ┌─────────────────┐
+  │  TransactionMap │  ──── runs analysis modules over the full transaction history
+  └─────────────────┘
+         │  HashMap<String, Object>
+         ▼
+  ┌─────────────────┐
+  │   RuleEngine    │  ──── scores a single new transaction against that analysis
+  └─────────────────┘
+         │  RuleEngineResult (JSON)
+         ▼
+    Risk Assessment
+```
 
 ---
 
-## Architecture
+## Package Structure
 
-The system operates in two main stages:
-
-1. **Data Preparation (Validation + Transformation)**
-2. **Fraud Scoring (Risk Evaluation)**
----
-
----
-
-## Core Concepts
-
-### Modular Design
-
-Fraud detection logic is implemented through **modules**.
-
-Modules can be:
-
-- built-in (e.g. thresholds, velocity checks, anomaly detection)
-- user-defined (custom fraud rules)
-
-Modules are injected into:
-
-- **TransactionMap** → feature enrichment  
-- **Suspicious Activity Engine** → scoring logic  
-
-This allows fraud behaviour to evolve without modifying the core system.
+```
+org.example.lib
+├── common
+│   ├── columns          — ColumnDefinition, ColumnType, StandardColumnType
+│   ├── countries        — IsoCountryCodes
+│   ├── modules
+│   │   ├── transactionmap   — TransactionMapModule interface + built-in modules
+│   │   └── ruleengine       — RuleEngineModule interface + built-in modules
+│   └── schemas          — DataFrameSchema, TransactionSchema, PersonalCustomerSchema, BusinessCustomerSchema
+├── transactionmapper    — TransactionMap, AggregationResult, InformativeResult
+├── ruleengine           — RuleEngine, RuleEngineResult
+└── validator            — SchemaValidator, DataValidator, ValidationReport, ValidationIssue
+```
 
 ---
 
-## Schemas
+## Validation
 
-The library provides built-in schemas for:
-
-- **Transaction data**
-- **Customer (personal) data**
-- **Business data**
-
-These define the default structure expected by the system.
-
-### Custom Schemas
-
-Users can define their own schemas to support:
-
-- additional domain-specific fields  
-- alternative data models  
-- enriched datasets (e.g. device info, geo data, behavioural signals)  
-
-Custom schemas integrate via `DFLib` and can:
-
-- participate in validation pipelines  
-- be consumed by modules  
-- contribute to feature engineering and scoring  
-
-This enables the system to adapt to different industries and use cases without core changes.
-
----
-
-## Application Flows
-
-### 1. Data Preparation Flow (`sourceValidation`)
-
-Ensures all data is clean, valid, and ready for processing.
-
-#### Flow
-
-1. Source provides raw input data  
-2. Data is loaded into `DFLib`  
-3. Data is validated  
-4. Data is modified (if required)  
-5. Validation and modification repeat until clean  
-
----
-
-### 2. Fraud Scoring Flow (`riskManagementCalculation`)
-
-Evaluates new transactions using historical and contextual data.
-
-#### Flow
-
-1. `DFLib (Transactions)` provides historical data  
-2. Modules are injected into an empty `TransactionMap`  
-3. `TransactionMap` structures and enriches data  
-4. Aggregated customer profile is generated  
-5. `DFLib (Customer + Business data)` is provided  
-6. A new transaction is submitted  
-7. Modules are injected into the scoring engine  
-8. Fraud score is produced  
-
----
-
-## Key Components
-
-### `DFLib`
-Responsible for:
-
-- data ingestion  
-- validation  
-- transformation  
-- aggregation  
-
----
-
-### `TransactionMap`
-
-Combines:
-
-- transaction datasets  
-- module-generated features  
-
-Used to create a structured representation of transaction behaviour.
-
----
-
-### `Aggregated Customer Profile`
-
-A derived view of customer activity used to:
-
-- provide behavioural context  
-- improve fraud detection accuracy  
-
----
-
-### `Suspicious Activity Engine`
-
-Core engine responsible for:
-
-- evaluating transactions  
-- applying fraud logic  
-- generating a fraud score  
-
----
-
-### `Modules`
-
-Pluggable units that:
-
-- enrich features  
-- apply fraud rules  
-- influence scoring  
-
----
-
-## Usage
-
-### Basic Example
+Before any analysis, DataFrames should be validated against their schema using `SchemaValidator`.
 
 ```java
-// Load data
-DFLib transactions = loadTransactions();
-DFLib customers = loadCustomers();
+SchemaValidator validator = new SchemaValidator(new TransactionSchema());
+ValidationReport report = validator.validate(transactionDf);
 
-// Validate & transform
-transactions = validate(transactions);
+if (report.hasErrors()) {
+    report.getAllIssues().forEach(System.out::println);
+}
+```
 
-// Build transaction map
-TransactionMap map = new TransactionMap();
-map.injectModules(transactionModules);
-map.load(transactions);
+Four checks are run:
+1. **Column presence** — all required columns exist
+2. **Column types** — values match the expected Java type
+3. **Null values** — nulls are flagged as ERROR (if disallowed) or WARNING (if allowed)
+4. **Allowed values** — constrained columns (e.g. Cash Turnover bands) only contain permitted values
 
-// Aggregate customer profile
-CustomerProfile profile = map.aggregate();
+Schemas available: `TransactionSchema`, `PersonalCustomerSchema`, `BusinessCustomerSchema`.
 
-// Initialise engine
-SuspiciousActivityEngine engine = new SuspiciousActivityEngine();
-engine.injectModules(scoringModules);
+---
 
-// Evaluate transaction
-FraudScore score = engine.evaluate(newTransaction, profile, customers);
+## TransactionMap
+
+`TransactionMap` runs a set of analysis modules over a customer's full transaction history. Each module receives the full `DataFrame` and returns any value. Results are collected into a `HashMap<String, Object>` keyed by module name.
+
+### Module protocol
+
+Modules may return anything, but SHOULD return one of two protocol types:
+
+| Type | Use when |
+|---|---|
+| `AggregationResult` | The output is a derived/summarised `DataFrame` |
+| `InformativeResult` | The output is a JSON string of derived facts |
+
+### Built-in modules
+
+| Module | Return type | Description |
+|---|---|---|
+| `CountryFrequencyModule` | `Map<String, Integer>` | Transaction count per country of origin |
+| `LocationAverageModule` | `AggregationResult` | Country distribution table with counts and percentages, sorted by frequency |
+| `AmountAggregationModule` | `AggregationResult` | Total, average, min and max transaction amounts (requires an `amount` column) |
+| `TopBeneficiariesModule` | `InformativeResult` | JSON array of the top 5 beneficiaries by transaction count |
+
+### Writing a custom module
+
+Implement `TransactionMapModule<T>`:
+
+```java
+public class MyModule implements TransactionMapModule<InformativeResult> {
+
+    @Override
+    public String getModuleName() { return "MyModule"; }
+
+    @Override
+    public InformativeResult run(DataFrame df) {
+        // read df, compute something, return result
+    }
+}
+```
+
+---
+
+## RuleEngine
+
+`RuleEngine` takes a single incoming transaction, the customer's profile, and the `HashMap` output from `TransactionMap`, then runs a set of scoring modules against them. Results are collected into a `RuleEngineResult` which can be serialised to JSON.
+
+### Module output format
+
+Every `RuleEngineModule` must return a `HashMap<String, Object>` with exactly these fields:
+
+| Field | Type | Description |
+|---|---|---|
+| `Module Name` | `String` | Name of the module |
+| `Module Ran` | `Boolean` | `true` if the module completed successfully |
+| `Risk Score` | `Integer` | 0–100 risk score (higher = lower risk / more expected behaviour) |
+| `Comments` | `String` | Human-readable explanation of the score |
+
+If a module throws an uncaught exception, the engine catches it and records a fallback entry with `Module Ran: false` and `Risk Score: -1`.
+
+### Built-in modules
+
+| Module | Description |
+|---|---|
+| `ClassificationModule` | Scores the transaction's beneficiary country against the customer's historical country frequency |
+
+### Writing a custom module
+
+Implement `RuleEngineModule`:
+
+```java
+public class MyRuleModule implements RuleEngineModule {
+
+    @Override
+    public String getModuleName() { return "MyRule"; }
+
+    @Override
+    public HashMap<String, Object> run(DataFrame transaction,
+                                       DataFrame customerProfile,
+                                       Object transactionMapData) {
+        HashMap<String, Object> output = new HashMap<>();
+        output.put("Module Name", getModuleName());
+        output.put("Module Ran", true);
+        output.put("Risk Score", 80);
+        output.put("Comments", "Explanation here.");
+        return output;
+    }
+}
+```
+
+---
+
+## Use Case Example
+
+A new payment has arrived for customer 1042. We want to validate the data, profile their transaction history, and score the new transaction for fraud risk.
+
+```java
+// 1. Validate the incoming data
+SchemaValidator txValidator = new SchemaValidator(new TransactionSchema());
+ValidationReport txReport = txValidator.validate(transactionHistoryDf);
+if (txReport.hasErrors()) {
+    throw new RuntimeException("Transaction data failed validation.");
+}
+
+SchemaValidator profileValidator = new SchemaValidator(new PersonalCustomerSchema());
+ValidationReport profileReport = profileValidator.validate(customerProfileDf);
+if (profileReport.hasErrors()) {
+    throw new RuntimeException("Customer profile failed validation.");
+}
+
+// 2. Build a profile of the customer's transaction history
+HashMap<String, Object> transactionMap = new TransactionMap(transactionHistoryDf)
+        .addModule(new CountryFrequencyModule())
+        .addModule(new LocationAverageModule())
+        .addModule(new TopBeneficiariesModule())
+        .run();
+
+// 3. Score the new incoming transaction against that profile
+RuleEngineResult result = new RuleEngine(newTransactionDf, customerProfileDf, transactionMap)
+        .addModule(new ClassificationModule())
+        .run();
+
+// 4. Output the risk assessment as JSON
+System.out.println(result.toJson());
+```
+
+Example output:
+```json
+[
+  {
+    "Module Name" : "Classification",
+    "Module Ran" : true,
+    "Risk Score" : 20,
+    "Comments" : "Beneficiary country 'NG' seen in 1 of 48 past transactions (score: 20/100)."
+  }
+]
+```
