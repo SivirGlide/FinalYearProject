@@ -3,11 +3,13 @@ package org.example.lib.common.modules.ruleengine;
 import org.dflib.DataFrame;
 import org.example.lib.transactionmapper.TransactionMapResult;
 
-public interface RuleEngineModule<T> {
+import java.util.HashMap;
+
+public interface RuleEngineModule {
 
     String getModuleName();
 
-    T run(DataFrame transaction,
-          DataFrame customerProfile,
-          TransactionMapResult transactionMap);
+    HashMap<String, Object> run(DataFrame transaction,
+                                DataFrame customerProfile,
+                                TransactionMapResult transactionMap);
 }
