@@ -1,4 +1,4 @@
-package org.example.lib.common.modules.transactionmap;
+package org.example.lib.transactionmapper;
 
 /**
  * Protocol type for TransactionMapModules that return derived information as JSON.
