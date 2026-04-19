@@ -1,6 +1,6 @@
 # Fraud Detection Library
 
-A Java-based fraud detection dependency built around a dataframe processing library (`DFLib`) and a modular suspicious activity scoring engine.
+A modular, Java-based fraud detection library built on top of a dataframe processing layer (`DFLib`) and a pluggable suspicious activity scoring engine.
 
 ---
 
@@ -9,13 +9,33 @@ A Java-based fraud detection dependency built around a dataframe processing libr
 This library evaluates incoming transactions for potential fraud by combining:
 
 - historical transaction data  
-- customer information  
+- customer (personal) information  
+- business data  
 - configurable fraud detection modules  
 - a scoring engine for new transactions  
 
-It also allows users to define custom modules, enabling tailored fraud detection strategies based on specific business rules or pattern recognition needs.
+It is designed to be **extensible**, allowing users to:
 
-At its core, the system uses `DFLib` for loading, validating, transforming, and aggregating data before passing it into the fraud detection engine.
+- define custom fraud detection modules  
+- introduce custom schemas and data structures  
+- tailor fraud logic to domain-specific patterns  
+
+At its core, the system uses `DFLib` to:
+
+- load and structure datasets  
+- validate and clean data  
+- transform and aggregate features  
+- prepare inputs for fraud scoring  
+
+---
+
+## Architecture
+
+The system operates in two main stages:
+
+1. **Data Preparation (Validation + Transformation)**
+2. **Fraud Scoring (Risk Evaluation)**
+---
 
 ---
 
@@ -23,19 +43,23 @@ At its core, the system uses `DFLib` for loading, validating, transforming, and 
 
 ### Modular Design
 
-Fraud detection logic is implemented through **modules**. These can be:
+Fraud detection logic is implemented through **modules**.
 
-- built-in modules (e.g. thresholds, velocity checks, pattern detection)
-- custom user-defined modules
+Modules can be:
 
-Modules can be injected into:
+- built-in (e.g. thresholds, velocity checks, anomaly detection)
+- user-defined (custom fraud rules)
 
-- the **TransactionMap** (for feature enrichment)
-- the **Suspicious Activity Engine** (for scoring logic)
+Modules are injected into:
 
-This makes the system highly extensible without requiring changes to the core pipeline.
+- **TransactionMap** → feature enrichment  
+- **Suspicious Activity Engine** → scoring logic  
 
-### Schema Flexibility
+This allows fraud behaviour to evolve without modifying the core system.
+
+---
+
+## Schemas
 
 The library provides built-in schemas for:
 
@@ -43,135 +67,134 @@ The library provides built-in schemas for:
 - **Customer (personal) data**
 - **Business data**
 
-These schemas define the default structure expected by the system for processing and scoring.
+These define the default structure expected by the system.
 
-In addition, users can define and supply their own custom schemas to support:
+### Custom Schemas
 
-- additional fields specific to their domain  
-- alternative data structures  
-- enriched datasets (e.g. device data, location metadata, behavioural signals)  
+Users can define their own schemas to support:
 
-Custom schemas can be integrated into the pipeline through `DFLib`, allowing them to:
+- additional domain-specific fields  
+- alternative data models  
+- enriched datasets (e.g. device info, geo data, behavioural signals)  
 
-- participate in validation and transformation  
+Custom schemas integrate via `DFLib` and can:
+
+- participate in validation pipelines  
 - be consumed by modules  
-- contribute to transaction enrichment and scoring  
+- contribute to feature engineering and scoring  
 
-This ensures the system can adapt to different data models without requiring changes to the core engine.
+This enables the system to adapt to different industries and use cases without core changes.
 
-## Architecture
-
-The system is composed of two primary stages:
-
-1. **Data preparation (validation and transformation)**
-2. **Fraud scoring (risk evaluation)**
-
-Data flows from raw sources through `DFLib`, into a structured transaction context, and finally into the scoring engine.
-
+---
 
 ## Application Flows
 
 ### 1. Data Preparation Flow (`sourceValidation`)
 
-Raw source data is processed through a validation and transformation loop to ensure consistency and quality.
+Ensures all data is clean, valid, and ready for processing.
 
 #### Flow
 
-1. **Source** provides raw input data  
-2. Data is loaded into **DFLib**  
-3. Data is **validated**  
-4. If necessary, data is **modified**  
-5. Steps 3–4 repeat until the dataset is clean and ready  
-
-This ensures the fraud engine operates on normalized, reliable data.
+1. Source provides raw input data  
+2. Data is loaded into `DFLib`  
+3. Data is validated  
+4. Data is modified (if required)  
+5. Validation and modification repeat until clean  
 
 ---
 
 ### 2. Fraud Scoring Flow (`riskManagementCalculation`)
 
-Once data is prepared, the system builds a transaction context and evaluates new transactions.
+Evaluates new transactions using historical and contextual data.
 
 #### Flow
 
-1. **DFLib (Transactions)** provides historical transaction data  
-2. **Modules** are injected into an empty **TransactionMap**  
-3. The **TransactionMap** enriches and structures transaction data  
-4. An **Aggregated Customer Profile** is generated  
-5. **DFLib (Customer Information)** is supplied to the engine  
-6. A **New Transaction** is submitted for evaluation  
-7. Additional **modules** are injected into the **Suspicious Activity Engine**  
-8. The engine produces a **fraud score**  
+1. `DFLib (Transactions)` provides historical data  
+2. Modules are injected into an empty `TransactionMap`  
+3. `TransactionMap` structures and enriches data  
+4. Aggregated customer profile is generated  
+5. `DFLib (Customer + Business data)` is provided  
+6. A new transaction is submitted  
+7. Modules are injected into the scoring engine  
+8. Fraud score is produced  
 
 ---
 
 ## Key Components
 
 ### `DFLib`
-Handles dataframe operations including:
+Responsible for:
 
-- ingestion  
-- transformation  
+- data ingestion  
 - validation  
+- transformation  
 - aggregation  
 
 ---
 
 ### `TransactionMap`
+
 Combines:
 
-- transaction data  
+- transaction datasets  
 - module-generated features  
 
-Used to build a structured representation of transaction behavior.
+Used to create a structured representation of transaction behaviour.
 
 ---
 
 ### `Aggregated Customer Profile`
-Derived from transaction data and used to provide contextual insights during fraud evaluation.
+
+A derived view of customer activity used to:
+
+- provide behavioural context  
+- improve fraud detection accuracy  
 
 ---
 
 ### `Suspicious Activity Engine`
+
 Core engine responsible for:
 
-- evaluating new transactions  
-- applying module logic  
-- generating the final fraud score  
+- evaluating transactions  
+- applying fraud logic  
+- generating a fraud score  
 
 ---
 
 ### `Modules`
-Pluggable units of logic used for:
 
-- feature generation  
-- rule evaluation  
-- scoring adjustments  
+Pluggable units that:
+
+- enrich features  
+- apply fraud rules  
+- influence scoring  
 
 ---
 
 ## Usage
 
-### Basic Flow
+### Basic Example
 
 ```java
-// 1. Load and prepare data
+// Load data
 DFLib transactions = loadTransactions();
 DFLib customers = loadCustomers();
 
-// 2. Validate and transform
-transactions = validateAndTransform(transactions);
+// Validate & transform
+transactions = validate(transactions);
 
-// 3. Build TransactionMap
+// Build transaction map
 TransactionMap map = new TransactionMap();
-map.injectModules(modules);
+map.injectModules(transactionModules);
 map.load(transactions);
 
-// 4. Aggregate customer data
+// Aggregate customer profile
 CustomerProfile profile = map.aggregate();
 
-// 5. Initialise engine
+// Initialise engine
 SuspiciousActivityEngine engine = new SuspiciousActivityEngine();
 engine.injectModules(scoringModules);
 
-// 6. Score new transaction
+// Evaluate transaction
 FraudScore score = engine.evaluate(newTransaction, profile, customers);
