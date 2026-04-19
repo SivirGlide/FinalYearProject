@@ -4,6 +4,7 @@ import org.dflib.DataFrame;
 import org.example.lib.common.modules.transactionmap.TransactionMapModule;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class TransactionMap {
@@ -23,21 +24,16 @@ public class TransactionMap {
         return this;
     }
 
-    public TransactionMapResult run() {
-        TransactionMapResult result = new TransactionMapResult();
+    public HashMap<String, Object> run() {
+        HashMap<String, Object> result = new HashMap<>();
 
         for (TransactionMapModule<?> module : modules) {
             String name = module.getModuleName();
             try {
-                Object value = module.run(df);
-                result.put(new ModuleResult(name, value));
+                result.put(name, module.run(df));
             } catch (Exception e) {
-                // Isolate the failure — record it and move on to the next module.
-                // This means a NullPointerException in one module won't silently
-                // prevent the remaining modules from running.
-                result.put(new ModuleResult(name,
-                        String.format("Module threw %s: %s",
-                                e.getClass().getSimpleName(), e.getMessage())));
+                result.put(name, String.format("Module threw %s: %s",
+                        e.getClass().getSimpleName(), e.getMessage()));
             }
         }
 

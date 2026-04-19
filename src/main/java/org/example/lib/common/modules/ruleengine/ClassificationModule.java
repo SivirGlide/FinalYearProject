@@ -1,7 +1,6 @@
 package org.example.lib.common.modules.ruleengine;
 
 import org.dflib.DataFrame;
-import org.example.lib.transactionmapper.TransactionMapResult;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,7 +29,7 @@ public class ClassificationModule implements RuleEngineModule {
     @Override
     public HashMap<String, Object> run(DataFrame transaction,
                                        DataFrame customerProfile,
-                                       TransactionMapResult transactionMap) {
+                                       Object transactionMapData) {
 
         HashMap<String, Object> output = new HashMap<>();
         output.put("Module Name", getModuleName());
@@ -45,9 +44,14 @@ public class ClassificationModule implements RuleEngineModule {
 
         String beneficiaryCountry = beneficiaryCountryRaw.toString();
 
-        Map<?, ?> countryFrequency = transactionMap
-                .get("CountryFrequency", Map.class)
-                .orElse(null);
+        if (!(transactionMapData instanceof HashMap<?, ?> transactionMap)) {
+            output.put("Risk Score", 0);
+            output.put("Comments", "TransactionMap data was not a HashMap — could not score transaction.");
+            return output;
+        }
+
+        Object frequencyRaw = transactionMap.get("CountryFrequency");
+        Map<?, ?> countryFrequency = (frequencyRaw instanceof Map<?, ?> m) ? m : null;
 
         if (countryFrequency == null || countryFrequency.isEmpty()) {
             output.put("Risk Score", 0);

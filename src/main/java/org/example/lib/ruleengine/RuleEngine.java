@@ -2,7 +2,6 @@ package org.example.lib.ruleengine;
 
 import org.dflib.DataFrame;
 import org.example.lib.common.modules.ruleengine.RuleEngineModule;
-import org.example.lib.transactionmapper.TransactionMapResult;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,16 +11,16 @@ public class RuleEngine {
 
     private final DataFrame transaction;
     private final DataFrame customerProfile;
-    private final TransactionMapResult transactionMap;
+    private final Object transactionMapResult;
 
     private final List<RuleEngineModule> modules = new ArrayList<>();
 
     public RuleEngine(DataFrame transaction,
                       DataFrame customerProfile,
-                      TransactionMapResult transactionMap) {
+                      Object transactionMapResult) {
         this.transaction     = transaction;
         this.customerProfile = customerProfile;
-        this.transactionMap  = transactionMap;
+        this.transactionMapResult  = transactionMapResult;
     }
 
     public RuleEngine addModule(RuleEngineModule module) {
@@ -36,7 +35,7 @@ public class RuleEngine {
         for (RuleEngineModule module : modules) {
             String name = module.getModuleName();
             try {
-                HashMap<String, Object> output = module.run(transaction, customerProfile, transactionMap);
+                HashMap<String, Object> output = module.run(transaction, customerProfile, transactionMapResult);
                 result.add(output);
             } catch (Exception e) {
                 HashMap<String, Object> errorOutput = new HashMap<>();
