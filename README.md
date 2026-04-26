@@ -6,10 +6,15 @@ A Java library for analysing customer transaction data and scoring transactions 
 
 ## Architecture Overview
 
-The library is built around two sequential pipelines:
+The library is built around three sequential layers:
 
 ```
 Customer Transactions (DataFrame)
+         │
+         ▼
+  ┌─────────────────┐
+  │    Validator    │  ──── schema + domain checks, returns ValidationReport
+  └─────────────────┘
          │
          ▼
   ┌─────────────────┐
@@ -17,10 +22,10 @@ Customer Transactions (DataFrame)
   └─────────────────┘
          │  HashMap<String, Object>
          ▼
-  ┌─────────────────┐
-  │   RuleEngine    │  ──── scores a single new transaction against that analysis
-  └─────────────────┘
-         │  RuleEngineResult (JSON)
+  ┌──────────────────────────────┐
+  │  SuspiciousActivityEngine    │  ──── scores a single new transaction against that analysis
+  └──────────────────────────────┘
+         │  SuspiciousActivityEngineResult (JSON)
          ▼
     Risk Assessment
 ```
@@ -35,19 +40,23 @@ org.example.lib
 │   ├── columns          — ColumnDefinition, ColumnType, StandardColumnType
 │   ├── countries        — IsoCountryCodes
 │   ├── modules
-│   │   ├── transactionmap   — TransactionMapModule interface + built-in modules
-│   │   └── ruleengine       — RuleEngineModule interface + built-in modules
+│   │   ├── transactionmap           — TransactionMapModule interface + built-in modules
+│   │   └── suspiciousactivityengine — SuspiciousActivityEngineModule interface + built-in modules
 │   └── schemas          — DataFrameSchema, TransactionSchema, PersonalCustomerSchema, BusinessCustomerSchema
 ├── transactionmapper    — TransactionMap, AggregationResult, InformativeResult
-├── ruleengine           — RuleEngine, RuleEngineResult
-└── validator            — SchemaValidator, DataValidator, ValidationReport, ValidationIssue
+├── suspiciousactivityengine — SuspiciousActivityEngine, SuspiciousActivityEngineResult
+└── validator            — DataValidator, SchemaValidator, TransactionValidator,
+                           PersonalCustomerValidator, BusinessCustomerValidator
+                           report/ValidationReport, report/ValidationIssue
 ```
 
 ---
 
 ## Validation
 
-Before any analysis, DataFrames should be validated against their schema using `SchemaValidator`.
+Before any analysis, DataFrames should be validated using one of the available validators.
+
+`SchemaValidator` runs structural checks against any `DataFrameSchema`:
 
 ```java
 SchemaValidator validator = new SchemaValidator(new TransactionSchema());
@@ -64,7 +73,36 @@ Four checks are run:
 3. **Null values** — nulls are flagged as ERROR (if disallowed) or WARNING (if allowed)
 4. **Allowed values** — constrained columns (e.g. Cash Turnover bands) only contain permitted values
 
-Schemas available: `TransactionSchema`, `PersonalCustomerSchema`, `BusinessCustomerSchema`.
+For domain-specific validation, use the dedicated validators. Each one runs the full schema check first, then adds its own checks on top:
+
+| Validator | Additional checks |
+|---|---|
+| `TransactionValidator` | Date/time validity, account number format, sort code format, ISO country codes |
+| `PersonalCustomerValidator` | UK postcode format, date of birth/age range, ISO country codes |
+| `BusinessCustomerValidator` | Date of incorporation, people list, cash turnover vs. turnover consistency, ISO country codes |
+
+```java
+TransactionValidator validator = new TransactionValidator();
+ValidationReport report = validator.validate(transactionDf);
+```
+
+### ValidationReport
+
+| Method | Description |
+|---|---|
+| `hasErrors()` | Returns true if any ERROR-severity issues were found |
+| `hasWarnings()` | Returns true if any WARNING-severity issues were found |
+| `getAllIssues()` | Returns all issues regardless of severity |
+| `getIssues(Severity)` | Returns issues at a specific severity level |
+| `getIssuesByColumn(String)` | Returns all issues for a named column |
+
+### ValidationIssue severities
+
+| Severity | Meaning |
+|---|---|
+| `ERROR` | Data is definitively wrong — missing column, wrong type |
+| `WARNING` | Something suspicious that may be a data quality problem |
+| `INFO` | Informational observation, not necessarily a problem |
 
 ---
 
@@ -109,19 +147,19 @@ public class MyModule implements TransactionMapModule<InformativeResult> {
 
 ---
 
-## RuleEngine
+## SuspiciousActivityEngine
 
-`RuleEngine` takes a single incoming transaction, the customer's profile, and the `HashMap` output from `TransactionMap`, then runs a set of scoring modules against them. Results are collected into a `RuleEngineResult` which can be serialised to JSON.
+`SuspiciousActivityEngine` takes a single incoming transaction, the customer's profile, and the `HashMap` output from `TransactionMap`, then runs a set of scoring modules against them. Results are collected into a `SuspiciousActivityEngineResult` which can be serialised to JSON.
 
 ### Module output format
 
-Every `RuleEngineModule` must return a `HashMap<String, Object>` with exactly these fields:
+Every `SuspiciousActivityEngineModule` must return a `HashMap<String, Object>` with exactly these fields:
 
 | Field | Type | Description |
 |---|---|---|
 | `Module Name` | `String` | Name of the module |
 | `Module Ran` | `Boolean` | `true` if the module completed successfully |
-| `Risk Score` | `Integer` | 0–100 risk score (higher = lower risk / more expected behaviour) |
+| `Risk Score` | `Integer` | 0–100 risk score (higher = more expected behaviour / lower risk) |
 | `Comments` | `String` | Human-readable explanation of the score |
 
 If a module throws an uncaught exception, the engine catches it and records a fallback entry with `Module Ran: false` and `Risk Score: -1`.
@@ -134,18 +172,18 @@ If a module throws an uncaught exception, the engine catches it and records a fa
 
 ### Writing a custom module
 
-Implement `RuleEngineModule`:
+Implement `SuspiciousActivityEngineModule`:
 
 ```java
-public class MyRuleModule implements RuleEngineModule {
+public class MyModule implements SuspiciousActivityEngineModule {
 
     @Override
-    public String getModuleName() { return "MyRule"; }
+    public String getModuleName() { return "MyModule"; }
 
     @Override
     public HashMap<String, Object> run(DataFrame transaction,
                                        DataFrame customerProfile,
-                                       Object transactionMapData) {
+                                       Object transactionMapResult) {
         HashMap<String, Object> output = new HashMap<>();
         output.put("Module Name", getModuleName());
         output.put("Module Ran", true);
@@ -164,13 +202,13 @@ A new payment has arrived for customer 1042. We want to validate the data, profi
 
 ```java
 // 1. Validate the incoming data
-SchemaValidator txValidator = new SchemaValidator(new TransactionSchema());
+TransactionValidator txValidator = new TransactionValidator();
 ValidationReport txReport = txValidator.validate(transactionHistoryDf);
 if (txReport.hasErrors()) {
     throw new RuntimeException("Transaction data failed validation.");
 }
 
-SchemaValidator profileValidator = new SchemaValidator(new PersonalCustomerSchema());
+PersonalCustomerValidator profileValidator = new PersonalCustomerValidator();
 ValidationReport profileReport = profileValidator.validate(customerProfileDf);
 if (profileReport.hasErrors()) {
     throw new RuntimeException("Customer profile failed validation.");
@@ -184,7 +222,7 @@ HashMap<String, Object> transactionMap = new TransactionMap(transactionHistoryDf
         .run();
 
 // 3. Score the new incoming transaction against that profile
-RuleEngineResult result = new RuleEngine(newTransactionDf, customerProfileDf, transactionMap)
+SuspiciousActivityEngineResult result = new SuspiciousActivityEngine(newTransactionDf, customerProfileDf, transactionMap)
         .addModule(new ClassificationModule())
         .run();
 
