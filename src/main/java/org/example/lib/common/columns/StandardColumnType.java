@@ -5,5 +5,6 @@ public enum StandardColumnType implements ColumnType {
     DATE,
     TIME,
     INT,
-    STRING_ARRAY
+    STRING_ARRAY,
+    PERSONAL_CUSTOMER_ARRAY
 }

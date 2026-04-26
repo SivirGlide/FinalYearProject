@@ -4,30 +4,65 @@ import org.example.lib.common.columns.ColumnDefinition;
 import org.example.lib.common.columns.StandardColumnType;
 
 import java.util.List;
-import java.util.Set;
 
 public class BusinessCustomerSchema extends DataFrameSchema {
 
-    private static final Set<String> CASH_TURNOVER_VALUES = Set.of(
-            "0-10000",
-            "10001-50000",
-            "50001-100000",
-            "100001-500000",
-            "500001+"
-    );
-
     @Override
     public String getSchemaName() {
-        return "PersonalCustomerSchema";
+        return "BusinessCustomerSchema";
     }
+
     @Override
     public List<ColumnDefinition> getColumnDefinitions() {
         return List.of(
 
-                new ColumnDefinition.Builder("firstname", StandardColumnType.STRING)
+                new ColumnDefinition.Builder("dateofincorporation", StandardColumnType.DATE)
                         .required(true)
                         .nullsAllowed(false)
-                        .comment("Customer's first name")
+                        .comment("Date the business was legally incorporated")
+                        .build(),
+
+                new ColumnDefinition.Builder("people", StandardColumnType.PERSONAL_CUSTOMER_ARRAY)
+                        .required(true)
+                        .nullsAllowed(false)
+                        .comment("Customers should be existing personal customers")
+                        .build(),
+
+                new ColumnDefinition.Builder("turnover", StandardColumnType.INT)
+                        .required(true)
+                        .nullsAllowed(false)
+                        .comment("Annual turnover of the business")
+                        .build(),
+
+                new ColumnDefinition.Builder("siccode", StandardColumnType.STRING)
+                        .required(true)
+                        .nullsAllowed(false)
+                        .comment("Gov.uk SIC code representing the business activity")
+                        .build(),
+
+                new ColumnDefinition.Builder("cashturnover", StandardColumnType.INT)
+                        .required(true)
+                        .nullsAllowed(false)
+                        .comment("Annual cash turnover — must not exceed total turnover")
+                        .build(),
+
+                new ColumnDefinition.Builder("countryofincorporation", StandardColumnType.STRING)
+                        .required(true)
+                        .nullsAllowed(false)
+                        .exactLength(2)
+                        .comment("2-character ISO 3166-1 alpha-2 code for the country of incorporation")
+                        .build(),
+
+                new ColumnDefinition.Builder("countriesofoutwardpayments", StandardColumnType.STRING_ARRAY)
+                        .required(true)
+                        .nullsAllowed(false)
+                        .comment("List of 2-character ISO codes for countries receiving payments from this business")
+                        .build(),
+
+                new ColumnDefinition.Builder("countriesofinwardpayments", StandardColumnType.STRING_ARRAY)
+                        .required(true)
+                        .nullsAllowed(false)
+                        .comment("List of 2-character ISO codes for countries sending payments to this business")
                         .build()
         );
     }

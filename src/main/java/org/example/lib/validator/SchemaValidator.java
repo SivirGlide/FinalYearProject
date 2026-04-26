@@ -244,11 +244,12 @@ public class SchemaValidator {
      */
     private Class<?> toJavaType(StandardColumnType type) {
         return switch (type) {
-            case STRING       -> String.class;
-            case DATE         -> LocalDate.class;
-            case TIME         -> LocalTime.class;
-            case INT          -> Integer.class;
-            case STRING_ARRAY -> String[].class;
+            case STRING                  -> String.class;
+            case DATE                    -> LocalDate.class;
+            case TIME                    -> LocalTime.class;
+            case INT                     -> Integer.class;
+            case STRING_ARRAY            -> String[].class;
+            case PERSONAL_CUSTOMER_ARRAY -> Object[].class;
         };
     }
 }

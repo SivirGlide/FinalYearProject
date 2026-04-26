@@ -17,8 +17,8 @@ public class ValidationIssue {
 
     private final Severity severity;
     private final String columnName;   // Which column triggered this issue ("N/A" if schema-level)
-    private final String description;  // Human-readable explanation
-    private final long rowIndex;       // -1 if not row-specific (e.g. whole-column issues)
+    private final String description;
+    private final long rowIndex;       // -1 if not row-specific
 
     public ValidationIssue(Severity severity, String columnName, String description, long rowIndex) {
         this.severity    = severity;
