@@ -1,4 +1,4 @@
-package org.example.lib.ruleengine;
+package org.example.lib.suspiciousactivityengine;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -7,7 +7,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
-public class RuleEngineResult {
+public class SuspiciousActivityEngineResult {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 

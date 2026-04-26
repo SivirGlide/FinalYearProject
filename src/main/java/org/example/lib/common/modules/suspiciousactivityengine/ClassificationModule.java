@@ -1,4 +1,4 @@
-package org.example.lib.common.modules.ruleengine;
+package org.example.lib.common.modules.suspiciousactivityengine;
 
 import org.dflib.DataFrame;
 
@@ -19,7 +19,7 @@ import java.util.Map;
  *
  *   System.out.println(results.toJson());
  */
-public class ClassificationModule implements RuleEngineModule {
+public class ClassificationModule implements SuspiciousActivityEngineModule {
 
     @Override
     public String getModuleName() {

@@ -1,10 +1,10 @@
-package org.example.lib.common.modules.ruleengine;
+package org.example.lib.common.modules.suspiciousactivityengine;
 
 import org.dflib.DataFrame;
 
 import java.util.HashMap;
 
-public interface RuleEngineModule {
+public interface SuspiciousActivityEngineModule {
 
     String getModuleName();
 

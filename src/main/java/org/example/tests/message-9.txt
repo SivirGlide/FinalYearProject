@@ -1,0 +1,196 @@
+```
+# Testing Strategy Document – Rule Engine & Transaction Map Modules
+
+## 1. Overview
+
+This document outlines the testing approach for the following packages:
+
+- `org.example.lib.ruleengine`
+- `org.example.lib.common.modules.transactionmap`
+- `org.example.lib.common.modules.ruleengine`
+
+The goal of testing is to ensure correctness, robustness, and reliability of:
+- Rule execution flow
+- Aggregation logic
+- Data transformation modules
+- Risk scoring behaviour
+
+---
+
+## 2. Testing Framework & Tools
+
+| Tool            | Purpose                          |
+|-----------------|----------------------------------|
+| JUnit 5         | Unit testing framework           |
+| Mockito         | Mocking dependencies             |
+| Maven Surefire  | Test execution                   |
+
+---
+
+## 3. Testing Principles
+
+### 3.1 Test Naming Convention
+
+Examples:
+- `run_noModules_returnsEmptyResult`
+- `run_beneficiaryCountryIsNull_returnsRiskScoreZero`
+
+---
+
+### 3.2 Test Structure (AAA Pattern)
+
+All tests follow:
+
+---
+
+### 3.3 Behaviour-Driven Testing
+
+Tests validate:
+- observable outputs
+- business logic correctness
+
+Tests **do not depend on internal implementation details**, allowing safe refactoring.
+
+---
+
+### 3.4 Edge Case Coverage
+
+Each class is tested for:
+
+- null inputs
+- empty datasets
+- invalid types
+- boundary values
+- error handling paths
+
+---
+
+## 4. Package Coverage
+
+---
+
+## 4.1 Rule Engine (`ruleengine`)
+
+### Classes Tested
+- `RuleEngine`
+- `RuleEngineResult`
+
+### Key Scenarios
+
+#### RuleEngine
+- Adding modules
+- Null module validation
+- Execution with:
+  - no modules
+  - single module
+  - multiple modules
+  - failing modules
+- Error handling and fallback output generation
+- Execution order preservation
+
+#### RuleEngineResult
+- Result storage
+- Immutability of returned list
+- JSON serialisation
+- Handling empty results
+
+---
+
+## 4.2 Transaction Map Modules
+
+### Classes Tested
+- `AmountAggregationModule`
+- `CountryFrequencyModule`
+- `LocationAverageModule`
+
+---
+
+### AmountAggregationModule
+
+**Test Coverage**
+- Correct aggregation:
+  - Total
+  - Average
+  - Min / Max
+- Handling:
+  - null values
+  - empty datasets
+  - mixed numeric types (int/double)
+
+**Edge Cases**
+- all nulls
+- missing column
+- invalid data types
+
+---
+
+### CountryFrequencyModule
+
+**Test Coverage**
+- Frequency counting accuracy
+- Null handling (ignored values)
+- Empty dataset behaviour
+- Non-string input conversion (`toString`)
+- Missing column failure
+
+---
+
+### LocationAverageModule
+
+**Test Coverage**
+- Frequency + percentage calculation
+- Sorting by transaction count (descending)
+- Percentage rounding (1 decimal place)
+- Null handling
+- Empty dataset handling
+- Single-country scenario (100%)
+- Type coercion
+- Missing column handling
+
+---
+
+## 4.3 Risk Engine Modules
+
+### Classes Tested
+- `ClassificationModule`
+
+---
+
+### ClassificationModule
+
+**Test Coverage**
+
+#### Valid Scenarios
+- Beneficiary is most frequent country → score = 100
+- Beneficiary with partial frequency → proportional score
+- Rounding behaviour of score
+
+#### Edge Cases
+- Beneficiary country is null
+- Beneficiary country not present in history
+- Missing `CountryFrequency` data
+- Invalid `transactionMapData` type
+- Empty frequency map
+- Non-string country values
+
+#### Error Handling
+- Non-numeric frequency values → exception
+- Missing required DataFrame column
+
+---
+
+## 5. Mocking Strategy
+
+Mockito is used where:
+- dependencies must be isolated
+- behaviour must be controlled (e.g. `RuleEngineModule`)
+
+Example:
+```java
+when(module.run(...)).thenReturn(output);
+
+```
+
+
+
+````
