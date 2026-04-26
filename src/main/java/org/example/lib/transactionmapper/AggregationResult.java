@@ -2,11 +2,6 @@ package org.example.lib.transactionmapper;
 
 import org.dflib.DataFrame;
 
-/**
- * Protocol type for TransactionMapModules that return an aggregated DataFrame.
- * Modules are not required to use this, but SHOULD when their output is a
- * summary/aggregation of the incoming transaction DataFrame.
- */
 public class AggregationResult {
 
     private final DataFrame data;

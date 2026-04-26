@@ -6,27 +6,6 @@ import org.dflib.Series;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Example module — counts how many transactions originated from each country.
- *
- * This exists to show developers exactly how to build their own modules.
- * The pattern is always the same:
- *   1. Implement TransactionMapModule<T> with T being your return type
- *   2. Return a unique name from getModuleName()
- *   3. Do your DataFrame work in run() and return the result
- *   4. Never modify the DataFrame
- *
- * This module returns Map<String, Integer> — a country code mapped to
- * the number of transactions from that country.
- *
- * USAGE:
- *   TransactionMapResult results = new TransactionMap(df)
- *       .addModule(new CountryFrequencyModule())
- *       .run();
- *
- *   results.get("CountryFrequency", Map.class)
- *          .ifPresent(freq -> System.out.println("Frequencies: " + freq));
- */
 public class CountryFrequencyModule implements TransactionMapModule<Map<String, Integer>> {
 
     @Override
@@ -34,12 +13,6 @@ public class CountryFrequencyModule implements TransactionMapModule<Map<String, 
         return "CountryFrequency";
     }
 
-    /**
-     * Counts transactions per country of origin.
-     *
-     * @param df  The customer's transaction DataFrame.
-     * @return    A Map of country code → transaction count, e.g. {"GB": 12, "US": 4}
-     */
     @Override
     public Map<String, Integer> run(DataFrame df) {
         Map<String, Integer> frequency = new HashMap<>();

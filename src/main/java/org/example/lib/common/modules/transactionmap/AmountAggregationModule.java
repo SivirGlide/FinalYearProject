@@ -4,13 +4,7 @@ import org.dflib.DataFrame;
 import org.dflib.Series;
 import org.example.lib.transactionmapper.AggregationResult;
 
-/**
- * Aggregation module — computes summary statistics over the transaction amount column.
- *
- * Expects a numeric column named "amount" in the DataFrame.
- * Returns an AggregationResult wrapping a single-row DataFrame with columns:
- *   Total | Average | Min | Max
- */
+
 public class AmountAggregationModule implements TransactionMapModule<AggregationResult> {
 
     @Override

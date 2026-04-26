@@ -9,14 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Aggregation module — builds a frequency table of countries where the customer's
- * transactions originate from, with count and percentage for each country.
- *
- * Returns an AggregationResult wrapping a DataFrame with columns:
- *   Country | TransactionCount | Percentage
- * Rows are sorted by TransactionCount descending.
- */
 public class LocationAverageModule implements TransactionMapModule<AggregationResult> {
 
     @Override

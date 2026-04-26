@@ -5,20 +5,6 @@ import org.dflib.DataFrame;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Example module — scores a transaction against the customer's historical behaviour.
- *
- * Risk Score 0–100:
- *   100 = beneficiary country is the customer's most-used country (lowest risk)
- *     0 = beneficiary country has never appeared in past transactions (highest risk)
- *
- * USAGE:
- *   RuleEngineResult results = new RuleEngine(transaction, customerProfile, transactionMapResult)
- *       .addModule(new ClassificationModule())
- *       .run();
- *
- *   System.out.println(results.toJson());
- */
 public class ClassificationModule implements SuspiciousActivityEngineModule {
 
     @Override

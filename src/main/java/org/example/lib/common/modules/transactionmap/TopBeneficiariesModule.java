@@ -12,13 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Informative module — identifies the top 5 beneficiaries by transaction count.
- *
- * Returns an InformativeResult wrapping a JSON array of up to 5 entries, each with:
- *   { "beneficiary": "...", "transactionCount": N }
- * Sorted by transactionCount descending.
- */
+
 public class TopBeneficiariesModule implements TransactionMapModule<InformativeResult> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
